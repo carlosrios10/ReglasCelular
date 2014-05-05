@@ -77,3 +77,22 @@ calcularPresicionRegla<-function(regla,transacciones){
     length(transaccionesLhsRhs)/length(transaccionesLhs)
     
 }
+agregarFecha<-function(datosCel){
+    arrayFecha<- array(dim=length(datosCel$DAY))
+    class(arrayFecha)<-"Date"
+    for(i in 1:length(datosCel$DAY)){
+        fechaVector<-as.character(c(datosCel$YEAR[i],datosCel$MONTH[i],datosCel$DAY[i]))
+        arrayFecha[i]<- as.Date(paste(fechaVector,collapse="-"), "%Y-%m-%d");
+            
+    }
+    return(arrayFecha)
+    
+}
+frecuenciaDelConsecuente<-function(reglas){
+    consecuente<-rhs(reglas)
+    consecuenteList<-as(consecuente,"list")
+    consecuenteFrame<-as.data.frame(consecuenteList)
+    consecuenteMatrix<-t(as.matrix(consecuenteFrame))
+    table(consecuenteMatrix[,1])
+    
+}
