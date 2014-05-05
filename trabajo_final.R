@@ -120,9 +120,7 @@ hist(vec)
 quality(subreglasClosed) <- cbind(quality(subreglasClosed),precision = vec)
 inspect(head(sort(subreglasClosed,by="lift",decreasing=TRUE),n=100))
 
-{BLUETOOTH.TSTATE=0,                                                                                     
- RINGER.STATE=1,                                                                                         
- WIFI.SSID=-} {BATTERY.PLGUSB=0}
+
 
 
 transaccionesLhs<-subset(celularTest, subset =items %ain% c("BLUETOOTH.TSTATE=0","RINGER.STATE=1","WIFI.SSID=-"))
