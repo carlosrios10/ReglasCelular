@@ -35,7 +35,11 @@ datosCel$HOUR_DISC<-as.factor(horasDisc)
 #creo la variable 
 bbPower2<-crearBatteryPower2(datosCel)
 datosCel$BATTERY.POWER2<-as.factor(bbPower2)
-
+#creo la variable 
+fecha<-agregarFecha(datosCel)
+datosCel$FECHA<-fecha
+hist(fecha,breaks="years")
+table(fecha)
 #Los valores perdidos lo reemplazo por la constante NA
 datosCel[is.na(datosCel)]<-NA #NA_character_
 datosCel[datosCel==""]<-NA #NA_character_
@@ -112,18 +116,15 @@ plot(c,arrows=c(T,F))
 
 2.2e-16<0.05
 ################# testing de reglas ################
-vec<-vector(length=530)
-for(i in 1:length(subreglasClosed)){
-    vec[i]<-calcularPresicionRegla(regla=reglas[i],transacciones=celularTest)    
-}
-hist(vec)
-quality(subreglasClosed) <- cbind(quality(subreglasClosed),precision = vec)
-inspect(head(sort(subreglasClosed,by="lift",decreasing=TRUE),n=100))
+quality(subreglasClosed) <- cbind(quality(subreglasClosed),confTest = interestMeasure(subreglasClosed, method = "confidence",transactions = celularTest,reuse=FALSE))
+hist(quality(subreglasClosed)$confTest)
 
-
-
-
-transaccionesLhs<-subset(celularTest, subset =items %ain% c("BLUETOOTH.TSTATE=0","RINGER.STATE=1","WIFI.SSID=-"))
-transaccionesLhsRhs<-subset(transaccionesLhs, subset =items %ain% c("BATTERY.PLGUSB=0"))
-length(transaccionesLhsRhs)/length(transaccionesLhs)
-inspect(transaccionesLhs[1])
+frecuenciaDelConsecuente(subreglas)
+############## modelo para predecir BATTERY.PLGAC=1 ###############
+subreglasBATTERYPLGAC1<-subset(subreglasClosed, subset =rhs %in% "BATTERY.PLGAC=1")
+inspect(subreglasBATTERYPLGAC1[1])
+antecedente<-lhs(subreglasBATTERYPLGAC1[1])
+antecedente<-as(antecedente,"list")
+consecuente<-rhs(subreglasBATTERYPLGAC1[1])
+consecuente<-as(consecuente,"list")
+transaccionesRhs<-subset(celularTest, subset =items %ain% consecuente[[1]])
