@@ -36,10 +36,10 @@ datosCel$HOUR_DISC<-as.factor(horasDisc)
 bbPower2<-crearBatteryPower2(datosCel)
 datosCel$BATTERY.POWER2<-as.factor(bbPower2)
 #creo la variable 
-fecha<-agregarFecha(datosCel)
-datosCel$FECHA<-fecha
-hist(fecha,breaks="years")
-table(fecha)
+# fecha<-agregarFecha(datosCel)
+# datosCel$FECHA<-fecha
+# hist(fecha,breaks="years")
+# table(fecha)
 #Los valores perdidos lo reemplazo por la constante NA
 datosCel[is.na(datosCel)]<-NA #NA_character_
 datosCel[datosCel==""]<-NA #NA_character_
@@ -64,25 +64,23 @@ datosCel[["WIFI.BSSID"]] <- NULL
 datosCel[["BATTERY.POWER"]] <- NULL
 datosCel[["BLUETOOTH.NAME"]] <- NULL
 datosCel[["BLUETOOTH.ADDRESS"]] <- NULL
+####
 #El paquete arules necesita que los datos sean factor(categorias)
 #transformamos al data set como transacciones
-aframe2 <- as.data.frame(lapply(datosCel, factor)) 
-celular<- as(aframe2, "transactions")
-summary(celular)
-countTrain<-floor(length(celular)*0.7)
-countTest<-length(celular)-countTrain
-c<-celular[1:countTrain]
-celularTest<-celular[8669:length(celular)]
-celular<-c
+datosCel <- as.data.frame(lapply(datosCel, factor)) 
+countTrain<-floor(nrow(datosCel)*0.7)
+countTest<-nrow(datosCel)-countTrain
+celularTrain<-datosCel[1:countTrain,]
+celularTest<-datosCel[(countTrain+1):nrow(datosCel),]
+celularTransaction<- as(celularTrain, "transactions")
 #Para ver los items mas importantes, muestro aquellos que estan en almenos el 30% de las transacciones
-itemFrequencyPlot(celular, support = soporte, cex.names=0.7,horiz =FALSE)
+itemFrequencyPlot(celularTransaction, support = soporte, cex.names=0.7,horiz =FALSE)
 
 #genero reglas
-reglas <-apriori(celular,parameter=list(support=soporte, confidence=confianza,minlen=2))
+reglas <-apriori(celularTransaction,parameter=list(support=soporte, confidence=confianza,minlen=2))
 #agrego un columna para saber si el itemset es cerrado, sirve para eliminar reglas redundantes
 quality(reglas) <- cbind(quality(reglas),isClosed = is.closed(generatingItemsets(reglas)))
-quality(reglas) <- cbind(quality(reglas),phi = interestMeasure(reglas, method = "phi", 
-                                                          transactions = celular))
+quality(reglas) <- cbind(quality(reglas),phi = interestMeasure(reglas, method = "phi",transactions = celularTransaction))
 
 subreglasClosed<-subset(reglas,isClosed==TRUE & lift>1.5)
 summary(subreglasClosed)
@@ -116,15 +114,47 @@ plot(c,arrows=c(T,F))
 
 2.2e-16<0.05
 ################# testing de reglas ################
-quality(subreglasClosed) <- cbind(quality(subreglasClosed),confTest = interestMeasure(subreglasClosed, method = "confidence",transactions = celularTest,reuse=FALSE))
+celularTestTransaction<- as(celularTest, "transactions")
+quality(subreglasClosed) <- cbind(quality(subreglasClosed),confTest = interestMeasure(subreglasClosed, method = "confidence",transactions = celularTestTransaction,reuse=FALSE))
+quality(subreglasClosed) <- cbind(quality(subreglasClosed),sopLhsTest = interestMeasure(subreglasClosed, method = "coverage",transactions = celularTestTransaction,reuse=FALSE))
 hist(quality(subreglasClosed)$confTest)
+frecuenciaDelConsecuente(subreglasClosed)
+############## modelo para predecir ###############
+subreglasModelo<-subset(subreglasClosed, subset =rhs %in% "RINGER.STATE=1")
+inspect(subreglasModelo)
+reglaModelo<-subreglasModelo[82]
+claseOriginal<-celularTest["RINGER.STATE"]
+for(i in 1:length(subreglasModelo) ){
+    claseOriginal <- cbind(claseOriginal,clase_regla=calcularPresicionModeloRINGERSTATE1(subreglasModelo[i],celularTestTransaction))    
+}
 
-frecuenciaDelConsecuente(subreglas)
-############## modelo para predecir BATTERY.PLGAC=1 ###############
-subreglasBATTERYPLGAC1<-subset(subreglasClosed, subset =rhs %in% "BATTERY.PLGAC=1")
-inspect(subreglasBATTERYPLGAC1[1])
-antecedente<-lhs(subreglasBATTERYPLGAC1[1])
-antecedente<-as(antecedente,"list")
-consecuente<-rhs(subreglasBATTERYPLGAC1[1])
-consecuente<-as(consecuente,"list")
-transaccionesRhs<-subset(celularTest, subset =items %ain% consecuente[[1]])
+precisiones<-vector(length=length(subreglasModelo))
+for(i in 1:ncol(claseOriginal) ){
+    col<-i+1
+    precisiones[i]<-sum(claseOriginal[1]==claseOriginal[i],na.rm=TRUE)/nrow(claseOriginal)
+    
+}
+
+sum(claseOriginal[1]==claseOriginal[2],na.rm=TRUE)/nrow(claseOriginal)
+quality(subreglasModelo) <- cbind(quality(subreglasModelo),precision=precisiones[2:84])
+
+plot(size(subreglasModelo),quality(subreglasModelo)$precision)
+DT = data.table(x=c("b","b","b","a","a"),v=rnorm(5))
+tables()
+setkey(DT,x)
+DT["b",]
+grpsize = ceiling(1e7/26^2)
+
+tt=system.time( DF <- data.frame(
+     x=rep(LETTERS,each=26*grpsize),
+     y=rep(letters,each=grpsize),
+    v=runif(grpsize*26^2),
+     stringsAsFactors=FALSE)
+     )
+dim(DF)
+tt=system.time(ans1 <- DF[DF$x=="R" & DF$y=="h",])
+DT = as.data.table(DF)
+system.time(setkey(DT,x,y))
+ss=system.time(ans2 <- DT[J("R","h")]) 
+system.time(ans1 <- DT[x=="R" & y=="h",])
+system.time(ans2 <- DF[DF$x=="R" & DF$y=="h",])
