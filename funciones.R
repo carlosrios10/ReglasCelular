@@ -77,6 +77,25 @@ calcularPresicionRegla<-function(regla,transacciones){
     length(transaccionesLhsRhs)/length(transaccionesLhs)
     
 }
+calcularPresicionModeloRINGERSTATE1<-function(reglaModelo,transacciones){
+    antecedente<-lhs(reglaModelo)
+    antMatrix<-as(antecedente,"matrix")
+    cantidadDeItems<-sum(antMatrix)
+    antMatrix[,antMatrix==0]<--1
+    celularTestMatrix<-as(transacciones,"matrix")
+    vect<-vector(length=nrow(celularTestMatrix))
+    for(i in 1:nrow(celularTestMatrix)){
+        if( sum((celularTestMatrix[i,] == antMatrix)) == cantidadDeItems){
+            vect[i]<-1   
+        }else{
+            vect[i]<-NA
+        }
+        
+    }
+    return(vect)
+#     sum(celularTestMatrix[,'RINGER.STATE=1']==vect,na.rm=TRUE)/nrow(celularTestMatrix)
+        
+}
 agregarFecha<-function(datosCel){
     arrayFecha<- array(dim=length(datosCel$DAY))
     class(arrayFecha)<-"Date"
