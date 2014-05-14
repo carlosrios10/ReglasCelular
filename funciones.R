@@ -93,7 +93,7 @@ calcularPresicionModeloRINGERSTATE1<-function(reglaModelo,transacciones){
         
     }
     return(vect)
-#     sum(celularTestMatrix[,'RINGER.STATE=1']==vect,na.rm=TRUE)/nrow(celularTestMatrix)
+
         
 }
 agregarFecha<-function(datosCel){
@@ -114,4 +114,58 @@ frecuenciaDelConsecuente<-function(reglas){
     consecuenteMatrix<-t(as.matrix(consecuenteFrame))
     table(consecuenteMatrix[,1])
     
+}
+
+obtenerPredicciones<-function(reglas,transacciones){
+    celularTestMatrix<-as(transacciones,"matrix")
+    vect<-vector(length=nrow(celularTestMatrix))
+    vectConf<-vector(mode="integer",length=nrow(celularTestMatrix))
+    for(i in 1:nrow(celularTestMatrix)){
+        
+        for( j in 1:length(reglas)){
+            reglaModelo<-reglas[j]
+            confi<-quality(reglaModelo)$confidence
+            antecedente<-lhs(reglaModelo)
+            antMatrix<-as(antecedente,"matrix")
+            cantidadDeItems<-sum(antMatrix)
+            antMatrix[,antMatrix==0]<--1
+            if( sum((celularTestMatrix[i,] == antMatrix)) == cantidadDeItems){
+                vect[i]<-1
+                if(confi>vectConf[i]){
+                    vectConf[i]<-confi
+                }            
+                
+            }            
+            
+        }
+        
+    }
+    return(data.frame(prediccion=vect, mayorConfi=vectConf))
+}
+predecirClase<-function(reglas,transacciones){
+    celularTestMatrix<-as(transacciones,"matrix")
+    vect<-array(data=NA,dim=nrow(celularTestMatrix))
+    
+    for(i in 1:nrow(celularTestMatrix)){
+        ConfIni<-0
+        for( j in 1:length(reglas)){
+            reglaModelo<-reglas[j]
+            confi<-quality(reglaModelo)$confidence
+            clase<-quality(reglaModelo)$clase
+            antecedente<-lhs(reglaModelo)
+            antMatrix<-as(antecedente,"matrix")
+            cantidadDeItems<-sum(antMatrix)
+            antMatrix[,antMatrix==0]<--1
+            if( sum((celularTestMatrix[i,] == antMatrix)) == cantidadDeItems){
+                if(confi>ConfIni){
+                    vect[i]<-clase
+                    ConfIni<-confi
+                }            
+                
+            }            
+            
+        }
+        
+    }
+    return(vect)
 }

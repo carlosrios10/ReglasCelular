@@ -4,7 +4,7 @@ library(Hmisc)
 library(arules)
 source("funciones.R")
 
-soporte<-0.3
+soporte<-0.1
 confianza<-0.8
 archivo<-"20140318211813-497933c89e49ff1b"
 #archivo<-"20140318211729-9e4f9ff1072ab8d6"
@@ -82,6 +82,7 @@ reglas <-apriori(celularTransaction,parameter=list(support=soporte, confidence=c
 quality(reglas) <- cbind(quality(reglas),isClosed = is.closed(generatingItemsets(reglas)))
 quality(reglas) <- cbind(quality(reglas),phi = interestMeasure(reglas, method = "phi",transactions = celularTransaction))
 
+reglas<-subset(reglas,lift>1.5)
 subreglasClosed<-subset(reglas,isClosed==TRUE & lift>1.5)
 summary(subreglasClosed)
 
@@ -112,49 +113,52 @@ c<-ca(table(datosCel[,c("BATTERY.POWER2","DAY_WEEK")]))
 summary(c)
 plot(c,arrows=c(T,F))
 
-2.2e-16<0.05
-################# testing de reglas ################
+
+################# testing de reglas ##############################
 celularTestTransaction<- as(celularTest, "transactions")
 quality(subreglasClosed) <- cbind(quality(subreglasClosed),confTest = interestMeasure(subreglasClosed, method = "confidence",transactions = celularTestTransaction,reuse=FALSE))
 quality(subreglasClosed) <- cbind(quality(subreglasClosed),sopLhsTest = interestMeasure(subreglasClosed, method = "coverage",transactions = celularTestTransaction,reuse=FALSE))
 hist(quality(subreglasClosed)$confTest)
 frecuenciaDelConsecuente(subreglasClosed)
-############## modelo para predecir ###############
+############## modelo para predecir RINGER.STATE=1 ###############
 subreglasModelo<-subset(subreglasClosed, subset =rhs %in% "RINGER.STATE=1")
 inspect(subreglasModelo)
-reglaModelo<-subreglasModelo[82]
 claseOriginal<-celularTest["RINGER.STATE"]
 for(i in 1:length(subreglasModelo) ){
     claseOriginal <- cbind(claseOriginal,clase_regla=calcularPresicionModeloRINGERSTATE1(subreglasModelo[i],celularTestTransaction))    
 }
-
 precisiones<-vector(length=length(subreglasModelo))
 for(i in 1:ncol(claseOriginal) ){
     col<-i+1
-    precisiones[i]<-sum(claseOriginal[1]==claseOriginal[i],na.rm=TRUE)/nrow(claseOriginal)
-    
+    precisiones[i]<-sum(claseOriginal[1]==claseOriginal[i],na.rm=TRUE)/(nrow(claseOriginal[i])-sum(is.na(claseOriginal[i])))
 }
-
-sum(claseOriginal[1]==claseOriginal[2],na.rm=TRUE)/nrow(claseOriginal)
 quality(subreglasModelo) <- cbind(quality(subreglasModelo),precision=precisiones[2:84])
+############## modelo para predecir  BATTERY.PLGAC ###############
+claseOriginalPLGAC<-celularTest["BATTERY.PLGAC"]
+subreglasModeloPLGAC1<-subset(subreglasClosed, subset =rhs %in% "BATTERY.PLGAC=1")
+subreglasModeloPLGAC1<-subreglasModeloPLGAC1[order(quality(subreglasModeloPLGAC1)$confidence,decreasing=T)]
+subreglasModeloPLGAC0<-subset(subreglasClosed, subset =rhs %in% "BATTERY.PLGAC=0")
+subreglasModeloPLGAC0<-subreglasModeloPLGAC0[order(quality(subreglasModeloPLGAC0)$confidence,decreasing=T)]
+quality(subreglasModeloPLGAC0)$clase<-0
+quality(subreglasModeloPLGAC1)$clase<-1
 
-plot(size(subreglasModelo),quality(subreglasModelo)$precision)
-DT = data.table(x=c("b","b","b","a","a"),v=rnorm(5))
-tables()
-setkey(DT,x)
-DT["b",]
-grpsize = ceiling(1e7/26^2)
+reglasModeloPLGAC<-c(subreglasModeloPLGAC1[1:2],subreglasModeloPLGAC0[1:2])
+resultado<-predecirClase(reglasModeloPLGAC,celularTestTransaction)
+precisionPLGAC<-sum(claseOriginalPLGAC[[1]]==resultado,na.rm=TRUE)/(nrow(claseOriginalPLGAC)-sum(is.na(resultado)))
 
-tt=system.time( DF <- data.frame(
-     x=rep(LETTERS,each=26*grpsize),
-     y=rep(letters,each=grpsize),
-    v=runif(grpsize*26^2),
-     stringsAsFactors=FALSE)
-     )
-dim(DF)
-tt=system.time(ans1 <- DF[DF$x=="R" & DF$y=="h",])
-DT = as.data.table(DF)
-system.time(setkey(DT,x,y))
-ss=system.time(ans2 <- DT[J("R","h")]) 
-system.time(ans1 <- DT[x=="R" & y=="h",])
-system.time(ans2 <- DF[DF$x=="R" & DF$y=="h",])
+pp<-unique(rhs(subreglasClosed))
+inspect(pp)
+############## modelo para predecir  BLUETOOTH.STATE ###############
+claseOriginalBSTATE<-celularTest["BLUETOOTH.STATE"]
+subreglasModeloBSTATE1<-subset(subreglasClosed, subset =rhs %in% "BLUETOOTH.STATE=1")
+subreglasModeloBSTATE1<-subreglasModeloBSTATE1[order(size(subreglasModeloBSTATE1),decreasing=F)]
+
+subreglasModeloBSTATE0<-subset(subreglasClosed, subset =rhs %in% "BLUETOOTH.STATE=0")
+subreglasModeloBSTATE0<-subreglasModeloBSTATE0[order(size(subreglasModeloBSTATE0),decreasing=F)]
+quality(subreglasModeloBSTATE0)$clase<-0
+quality(subreglasModeloBSTATE1)$clase<-1
+reglasModeloBSTATE<-c(subreglasModeloBSTATE1[1:2],subreglasModeloBSTATE0[1:2])
+inspect(reglasModeloBSTATE)
+resultado<-predecirClase(reglasModeloBSTATE,celularTestTransaction)
+pre<-sum(claseOriginalBSTATE[[1]]==resultado,na.rm=TRUE)/(nrow(claseOriginalBSTATE)-sum(is.na(resultado)))
+size(subreglasModeloBSTATE1)
