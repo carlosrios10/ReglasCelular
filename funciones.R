@@ -169,3 +169,4 @@ predecirClase<-function(reglas,transacciones){
     }
     return(vect)
 }
+

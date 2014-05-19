@@ -157,8 +157,12 @@ subreglasModeloBSTATE0<-subset(subreglasClosed, subset =rhs %in% "BLUETOOTH.STAT
 subreglasModeloBSTATE0<-subreglasModeloBSTATE0[order(size(subreglasModeloBSTATE0),decreasing=F)]
 quality(subreglasModeloBSTATE0)$clase<-0
 quality(subreglasModeloBSTATE1)$clase<-1
+
 reglasModeloBSTATE<-c(subreglasModeloBSTATE1[1:2],subreglasModeloBSTATE0[1:2])
 inspect(reglasModeloBSTATE)
 resultado<-predecirClase(reglasModeloBSTATE,celularTestTransaction)
 pre<-sum(claseOriginalBSTATE[[1]]==resultado,na.rm=TRUE)/(nrow(claseOriginalBSTATE)-sum(is.na(resultado)))
 size(subreglasModeloBSTATE1)
+
+
+
