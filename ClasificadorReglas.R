@@ -13,9 +13,12 @@ ClasificadorReglas <- function(classLabels, data,
     
     ### rule base
     rules <- apriori(data, parameter=parameter, appearance=ap, control=control)
-    #rules <- sortRules(rules, data, measures)
-    ### hay que filtrar las mejores reglas.
     
+    ### hay que filtrar las mejores reglas.
+    quality(rules)<-cbind(quality(rules),isClosed = is.closed(generatingItemsets(rules)))
+    quality(rules)<-cbind(quality(rules),size=size(rules))
+   
+    rules<-filterRules(rules)
     ### default class
     defaultClass <- "NA"
     
@@ -24,23 +27,34 @@ ClasificadorReglas <- function(classLabels, data,
         classLabels=classLabels
     )
 }
-
-sortRules <- function(rules, data, measures = c("support", "confidence", "lift")) {
-    # Gives a data frame with all interests needed in order
-    df <- as.data.frame(interestMeasure(rules, measures, data, reuse=TRUE))
+###Elimina todas las reglas que tienen un lfit < 1.5
+###y ademas elimiman los superset de un itemset.
+filterRules<-function(rules){
+    cat("Filtrando Reglas..")
+    rules<-subset(rules,isClosed==TRUE & lift>1.5)
+    indice<-1
+    max<-length(rules)
+    finalRules<- new("rules")
+    while(indice<=max){
+        tt<-is.subset(rules[indice],rules)
+        m<-rules[tt]
+        m<-m[order(quality(m)$size,decreasing=F)]
+        regla<-m[1]
+        finalRules<-union(finalRules,regla)
+        rules<-rules[!tt]
+        max<-length(rules)
+        }
+    cat("Fin-Filtrando Reglas")
+    return(finalRules)
     
-    #Returns a vector with a list of ordered indexes
-    order <- do.call(order, c(as.list(df[,measures]), decreasing=TRUE))
-    
-    sortedRules <- rules[order]
-    return(sortedRules)
 }
 
 ### predict for itemsets
 setMethod("predict", signature(object = "ClasificadorReglas"),
           function(object, newdata, ...) {
-            
+              cat("Calculando Prediccion..")
               res <- vector("character", length=length(newdata))    
+              vecR<-vector("character", length=length(newdata))    
               for(i in 1:length(newdata)) {
                   ss <- is.subset(lhs(object@rules), newdata[i,])
                   if(sum(ss)==0) res[i] <- object@defaultClass
@@ -51,11 +65,13 @@ setMethod("predict", signature(object = "ClasificadorReglas"),
                       sortedRules<- rulesMatch[order]
                       rhs <- as(rhs(sortedRules[1]), "list")
                       res[i] <- rhs[[1]]
+                      vecR[i]<-labels(sortedRules[1])
                   }
 
               }
+              cat("Fin-Calculando Prediccion")
               res[(res=="NA")]<-NA
-             return(res)
+             return(data.frame(res,vecR))
           })
 
 confusion <- function(pred, test, model) {

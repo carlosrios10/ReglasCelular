@@ -1,4 +1,3 @@
-setwd("../proyecto-reglas")
 getwd()
 #Limpio memoria
 rm(list = ls())
@@ -16,9 +15,10 @@ countTrain<-floor(length(celularTransaction)*0.7)
 celularTrain<-celularTransaction[1:countTrain,]
 celularTest<-celularTransaction[(countTrain+1):length(celularTransaction),]
 
-classLabels <- itemLabels(celularTransaction)[itemInfo(celularTransaction)$variables=="BATTERY.POWER2"]
+classLabels <- itemLabels(celularTransaction)[itemInfo(celularTransaction)$variables=="WIFI.STATE"]
 
 modelo<-ClasificadorReglas(classLabels,celularTrain,parameter=list(supp=0.03, conf=0.8, minlen=2))
 pred <- predict(modelo, celularTest)
 acc <- accuracy(pred, celularTest, modelo)
-confusion(pred, celularTest, modelo)
+confusion(pred2, celularTest, modelo)
+

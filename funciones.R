@@ -170,3 +170,6 @@ predecirClase<-function(reglas,transacciones){
     return(vect)
 }
 
+calcularMax<-function(reglas){
+    reglas
+}
