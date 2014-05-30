@@ -17,8 +17,9 @@ ClasificadorReglas <- function(classLabels, data,
     ### hay que filtrar las mejores reglas.
     quality(rules)<-cbind(quality(rules),isClosed = is.closed(generatingItemsets(rules)))
     quality(rules)<-cbind(quality(rules),size=size(rules))
-   
+    #rules<-addInterestMeasure(rules,data)
     rules<-filterRules(rules)
+    
     ### default class
     defaultClass <- "NA"
     
@@ -38,7 +39,7 @@ filterRules<-function(rules){
     while(indice<=max){
         tt<-is.subset(rules[indice],rules)
         m<-rules[tt]
-        m<-m[order(quality(m)$size,decreasing=F)]
+        m<-m[order(quality(m)$confidence,decreasing=F)]
         regla<-m[1]
         finalRules<-union(finalRules,regla)
         rules<-rules[!tt]
@@ -54,7 +55,7 @@ setMethod("predict", signature(object = "ClasificadorReglas"),
           function(object, newdata, ...) {
               cat("Calculando Prediccion..")
               res <- vector("character", length=length(newdata))    
-              vecR<-vector("character", length=length(newdata))    
+              reglasElegidas<-vector("character", length=length(newdata))    
               for(i in 1:length(newdata)) {
                   ss <- is.subset(lhs(object@rules), newdata[i,])
                   if(sum(ss)==0) res[i] <- object@defaultClass
@@ -65,13 +66,15 @@ setMethod("predict", signature(object = "ClasificadorReglas"),
                       sortedRules<- rulesMatch[order]
                       rhs <- as(rhs(sortedRules[1]), "list")
                       res[i] <- rhs[[1]]
-                      vecR[i]<-labels(sortedRules[1])
+                      reglasElegidas[i]<-labels(sortedRules[1])
+                                           
                   }
 
               }
               cat("Fin-Calculando Prediccion")
               res[(res=="NA")]<-NA
-             return(data.frame(res,vecR))
+              match<-(res==unlist(as(newdata[,classLabels], "list")))
+             return(data.frame(res,match,reglasElegidas))
           })
 
 confusion <- function(pred, test, model) {
@@ -83,4 +86,29 @@ confusion <- function(pred, test, model) {
 accuracy <- function(pred, test, model) {
     t <- confusion(pred, test, model)
     sum(diag(t))/sum(t)
+}
+#### coverage
+coverage<-function(celularTest,pred){
+    
+    (nrow(celularTest)-sum(is.na(pred)))/nrow(celularTest)    
+}
+##calcular medidas de interes
+addInterestMeasure<-function(rules,data){
+    quality(rules)<-cbind(quality(rules),chiSquare = interestMeasure(x=rules,method="chiSquare",transactions=data))
+    quality(rules)<-cbind(quality(rules),conviction = interestMeasure(x=rules,method="conviction",transactions=data))
+    quality(rules)<-cbind(quality(rules),cosine = interestMeasure(x=rules,method="cosine",transactions=data))
+    quality(rules)<-cbind(quality(rules),coverage = interestMeasure(x=rules,method="coverage",transactions=data))
+    quality(rules)<-cbind(quality(rules),doc = interestMeasure(x=rules,method="doc",transactions=data))
+    quality(rules)<-cbind(quality(rules),gini = interestMeasure(x=rules,method="gini",transactions=data))
+    quality(rules)<-cbind(quality(rules),hyperLift = interestMeasure(x=rules,method="hyperLift",transactions=data))
+    quality(rules)<-cbind(quality(rules),hyperConfidence = interestMeasure(x=rules,method="hyperConfidence",transactions=data))
+    quality(rules)<-cbind(quality(rules),fishersExactTest = interestMeasure(x=rules,method="fishersExactTest",transactions=data))
+    quality(rules)<-cbind(quality(rules),improvement = interestMeasure(x=rules,method="improvement",transactions=data))
+    quality(rules)<-cbind(quality(rules),leverage = interestMeasure(x=rules,method="leverage",transactions=data))
+    quality(rules)<-cbind(quality(rules),oddsRatio = interestMeasure(x=rules,method="oddsRatio",transactions=data))
+    quality(rules)<-cbind(quality(rules),phi = interestMeasure(x=rules,method="phi",transactions=data))
+    quality(rules)<-cbind(quality(rules),RLD = interestMeasure(x=rules,method="RLD",transactions=data))
+    quality(rules)<-cbind(quality(rules),oddsRatio = interestMeasure(x=rules,method="oddsRatio",transactions=data))
+    
+    return (rules)
 }

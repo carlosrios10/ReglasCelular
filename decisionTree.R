@@ -2,6 +2,7 @@ getwd()
 #Limpio memoria
 rm(list = ls())
 library("rpart")
+source("funciones.R")
 archivo<-"20140318211813-497933c89e49ff1b_Clean.csv"
 #Cargo el archivo en memoria (colClasses=factor significa que las columnas se convierten en categorias)
 datosCel=read.csv(archivo, header = TRUE, sep = ",",colClasses="factor")
@@ -10,39 +11,42 @@ datosCel=read.csv(archivo, header = TRUE, sep = ",",colClasses="factor")
 countTrain<-floor(nrow(datosCel)*0.7)
 celularTrain<-datosCel[1:countTrain,]
 celularTest<-datosCel[(countTrain+1):nrow(datosCel),]
-modelo <- rpart(WIFI.STATE ~ .,data=celularTrain, parms=list(split='gini'), control = mycontrol)
-modelo$cptable
 
-pred<-predict(modelo, type="class", newdata=celularTest)
-prob<-predict(modelo, type="prob", newdata=celularTest)
-perf <- performance(pred)
-class(pred)
-t<-table(pred,celularTest$WIFI.STATE)
-table(celularTest$WIFI.STATE)
-sum(diag(t))/sum(t)
-plot(as.party(modelo), type="simple")    
-prediction(pred, celularTest$WIFI.STATE, label.ordering = NULL)
-data(ROCR.simple)
-ROCR.simple$predictions
-
-source("http://scg.sdsu.edu/wp-content/uploads/2013/09/dataprep.r")
-library(ROCR)
 mycontrol = rpart.control(cp = 0, xval = 10)
-fittree = rpart(income~., method = "class",data = data$train, control = mycontrol)
-fittree$cptable
-which(min(fittree$cptable[,4])==fittree$cptable[,4])
-cptarg = sqrt(fittree$cptable[7,1]*fittree$cptable[8,1])
-prunedtree = prune(fittree,cp=cptarg)
+modelo <- rpart(WIFI.STATE ~ .,data=celularTrain, control = mycontrol,method="class")
+which.min(modelo$cptable[,"xerror"])
+print(modelo)
+
+modelo <- tree(WIFI.STATE ~ .,data=celularTrain)
+seq<-prune.tree(modelo)
+plot(seq)
+cv<-cv.tree(modelo)
+plot(cv)
+#Elegirmos el mejor cp y realizamos el pruning
+# Regla 1-SD
+cpM<-calcularMejorCp(modelo)
+cpM[1]
+prunedModel = prune(modelo,cp=cpM[1])
+
 par(mfrow = c(1, 1), mar = c(1, 1, 1, 1))
-plot(prunedtree, uniform = T, compress = T, 
-     margin = 0.1, branch = 0.3)
-text(prunedtree, use.n = T, digits = 3, cex = 0.6)
-fit.preds = predict(prunedtree,newdata=data$val,type="class")
-fit.table = table(data$val$income,fit.preds)
-fit.table
-sum(diag(fit.table))/sum(fit.table)
-fit.pr = predict(prunedtree,newdata=data$val,type="prob")[,2]
-fit.pred = prediction(fit.pr,data$val$income)
-fit.perf = performance(fit.pred,"tpr","fpr")
-plot(fit.perf,lwd=2,col="blue",main="ROC:  Classification Trees on Adult Dataset")
+plot(prunedModel, uniform = T, compress = T,margin = 0.1, branch = 0.3)
+text(prunedModel, use.n = T, digits = 3, cex = 0.6)
+
+#calculamos la precision
+pred<-predict(prunedModel, type="class", newdata=celularTest)
+model.table = table(celularTest$WIFI.STATE,pred)
+model.table
+sum(diag(model.table))/sum(model.table)
+
+#hacemos la curva ROC
+prob<-predict(prunedModel, type="prob", newdata=celularTest)[,2]
+pred = prediction(prob,celularTest$WIFI.STATE)
+perf = performance(pred,"tpr","fpr")
+plot(perf,lwd=2,col="blue",main="ROC:  Classification Trees on Adult Dataset")
 abline(a=0,b=1)
+
+perf = performance(pred,"auc")@y.values[[1]]
+
+
+
+

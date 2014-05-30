@@ -173,3 +173,23 @@ predecirClase<-function(reglas,transacciones){
 calcularMax<-function(reglas){
     reglas
 }
+
+######################################################
+######################################################
+############### Arboles ##############################
+######################################################
+
+calcularMejorCp<-function(fittree){
+    
+    xerrorMinimo<-min(fittree$cptable[,"xerror"])
+    indiceMinimo<-which.min(fittree$cptable[,"xerror"])
+    xstd<-fittree$cptable[indiceMinimo,"xstd"]
+    indices<-which(fittree$cptable[,"xerror"]<=(xerrorMinimo+xstd))
+    max<-max(fittree$cptable[indices,"xerror"])
+    indiceMax<-which(fittree$cptable[,"xerror"]==max)
+    cpElegido<-fittree$cptable[indiceMax,]
+    return (cpElegido)
+    
+    
+}
+

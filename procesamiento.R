@@ -46,7 +46,8 @@ datosCel[["WIFI.BSSID"]] <- NULL
 datosCel[["BATTERY.POWER"]] <- NULL
 datosCel[["BLUETOOTH.NAME"]] <- NULL
 datosCel[["BLUETOOTH.ADDRESS"]] <- NULL
+datosCel[datosCel=="-"]<-NA
 #Guardo el archivo
-write.csv(datosCel, file="20140318211813-497933c89e49ff1b_Clean.csv", row.names=FALSE)
+write.csv(datosCel, file="20140318211813-497933c89e49ff1b_Clean2.csv", row.names=FALSE)
 
 
