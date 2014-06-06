@@ -18,11 +18,13 @@ confianza<-0.8
 itemFrequencyPlot(celularTransaction, support = soporte, cex.names=0.7,horiz =FALSE)
 
 #genero reglas
-reglas <-apriori(celularTransaction,parameter=list(support=soporte, confidence=confianza,minlen=2))
+reglas <-apriori(celularTransaction,parameter=list(support=soporte, confidence=confianza))
 #agrego un columna para saber si el itemset es cerrado, sirve para eliminar reglas redundantes
 quality(reglas) <- cbind(quality(reglas),isClosed = is.closed(generatingItemsets(reglas)))
 #Agrego la medida phi (se pueden agregar todas las que se deseen - ver ayuda)
 quality(reglas) <- cbind(quality(reglas),phi = interestMeasure(reglas, method = "phi",transactions = celularTransaction))
+
+inspect(reglas)
 
 #Obtengo aquellas reglas que provienen de un itemset cerrado y aquellas que tienen un lift>1.5
 subreglasClosed<-subset(reglas,isClosed==TRUE & lift>1.5)

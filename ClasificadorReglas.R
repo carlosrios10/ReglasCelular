@@ -13,17 +13,17 @@ ClasificadorReglas <- function(classLabels, data,
     
     ### rule base
     rules <- apriori(data, parameter=parameter, appearance=ap, control=control)
-    
+    totalRules<-length(rules)
     ### hay que filtrar las mejores reglas.
     quality(rules)<-cbind(quality(rules),isClosed = is.closed(generatingItemsets(rules)))
     quality(rules)<-cbind(quality(rules),size=size(rules))
     #rules<-addInterestMeasure(rules,data)
     rules<-filterRules(rules)
-    
-    ### default class
+    ### default class ####
     defaultClass <- "NA"
     
-    new("ClasificadorReglas", rules=rules, 
+    new("ClasificadorReglas", rules=rules,
+        totalRules=totalRules, 
         defaultClass=defaultClass,
         classLabels=classLabels
     )
@@ -31,7 +31,7 @@ ClasificadorReglas <- function(classLabels, data,
 ###Elimina todas las reglas que tienen un lfit < 1.5
 ###y ademas elimiman los superset de un itemset.
 filterRules<-function(rules){
-    cat("Filtrando Reglas..")
+    cat("Filtrando Reglas......")
     rules<-subset(rules,isClosed==TRUE & lift>1.5)
     indice<-1
     max<-length(rules)
@@ -39,7 +39,7 @@ filterRules<-function(rules){
     while(indice<=max){
         tt<-is.subset(rules[indice],rules)
         m<-rules[tt]
-        m<-m[order(quality(m)$confidence,decreasing=F)]
+        m<-m[order(quality(m)$confidence,quality(m)$support,decreasing=T)]
         regla<-m[1]
         finalRules<-union(finalRules,regla)
         rules<-rules[!tt]
@@ -89,8 +89,7 @@ accuracy <- function(pred, test, model) {
 }
 #### coverage
 coverage<-function(celularTest,pred){
-    
-    (nrow(celularTest)-sum(is.na(pred)))/nrow(celularTest)    
+    return((nrow(celularTest)-sum(is.na(pred)))/nrow(celularTest))
 }
 ##calcular medidas de interes
 addInterestMeasure<-function(rules,data){
@@ -108,7 +107,7 @@ addInterestMeasure<-function(rules,data){
     quality(rules)<-cbind(quality(rules),oddsRatio = interestMeasure(x=rules,method="oddsRatio",transactions=data))
     quality(rules)<-cbind(quality(rules),phi = interestMeasure(x=rules,method="phi",transactions=data))
     quality(rules)<-cbind(quality(rules),RLD = interestMeasure(x=rules,method="RLD",transactions=data))
-    quality(rules)<-cbind(quality(rules),oddsRatio = interestMeasure(x=rules,method="oddsRatio",transactions=data))
+    
     
     return (rules)
 }

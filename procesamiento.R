@@ -6,7 +6,7 @@ rm(list = ls())
 source("funciones.R")
 
 #Carga del archivo
-archivo<-"20140318211813-497933c89e49ff1b.csv"
+archivo<-"20140318211729-9e4f9ff1072ab8d6"
 #Se definien los tipos de datos para las variables del conjunto de datos.
 clases=c("numeric","numeric","numeric","numeric","numeric","numeric","character",
          "character","character","character","character","character","character","character",
@@ -14,7 +14,8 @@ clases=c("numeric","numeric","numeric","numeric","numeric","numeric","character"
          "character","character","character","character","character","character","character",
          "character","character","character","character", "character","character","character")
 #Cargo el archivo en memoria
-datosCel=read.csv(archivo, header = TRUE, sep = ";",colClasses =clases)
+datosCel=read.csv(paste("datos2/",archivo,".csv",sep=""), header = TRUE, sep = ";",colClasses =clases)
+
 #creo una variable con los dias de la semana
 dias<-extraerDiasDelaSemana(datosCel)
 datosCel$DAY_WEEK<-as.factor(dias)
@@ -48,6 +49,7 @@ datosCel[["BLUETOOTH.NAME"]] <- NULL
 datosCel[["BLUETOOTH.ADDRESS"]] <- NULL
 datosCel[datosCel=="-"]<-NA
 #Guardo el archivo
-write.csv(datosCel, file="20140318211813-497933c89e49ff1b_Clean2.csv", row.names=FALSE)
+
+write.csv(datosCel, file=paste("datos2/",archivo,"clean.csv",sep="_"), row.names=FALSE)
 
 

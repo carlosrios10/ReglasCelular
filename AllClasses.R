@@ -3,6 +3,7 @@ setClass(
     Class = "AssociativeClassifier",
     representation = representation(
         rules = "rules",
+        totalRules = "integer",
         classLabels = "character",
         defaultClass = "character",
         parameters = "list",
